@@ -1,0 +1,30 @@
+DATA_DIR=/Users/smolkinr/Documents/Programming/Rahul_Sequencing/scRNAseq/input_data/RS-1778_1to6_TCR_VDJ/CR-vdj-results/
+READS=../filtered_contig.fasta
+ANNOTATIONS=../filtered_contig_annotations.csv
+SAMPLE_NAME=GCB
+OUT_DIR=./changeo
+DIST=0.1
+NPROC=1000
+
+docker run -v $DATA_DIR:/data:z immcantation/suite:devel \
+    changeo-10x -s $READS -a $ANNOTATIONS \
+    -g mouse -x $DIST -n $SAMPLE_NAME -z \
+    -o $OUT_DIR -p $NPROC
+
+changeo-10x -s $READS -a $ANNOTATIONS \
+    -g mouse -x $DIST -n $SAMPLE_NAME -z \
+    -o $OUT_DIR -p 1
+
+cd data
+changeo-10x -s $READS -a $ANNOTATIONS -o . -g mouse -x .1 -p 1
+
+DefineClones.py -d temp_files/filtered_contig_heavy_productive-T.tsv --act set --model ham \
+    --norm none --dist 4 --outname filtered_contig_heavy
+
+light_cluster.py -d temp_files/filtered_contig_heavy_clone-pass.tsv -e filtered_contig_light_productive-T.tsv \
+    -o filtered_contig_heavy_clone-light.tsv
+
+CreateGermlines.py -d filtered_contig_heavy_germ-pass.tsv -g dmask --cloned \
+    -r ~/share/igblast/fasta/imgt_mouse_ig_v.fasta ~/share/igblast/fasta/imgt_mouse_ig_d.fasta ~/share/igblast/fasta/imgt_mouse_ig_j.fasta
+
+docker run -it -v /Users/smolkinr/Documents/Programming/Rahul_Sequencing/scRNAseq/input_data/RS-1778_1to6_TCR_VDJ/CR-vdj-results/:/data:z immcantation/suite:4.3.0 bash
